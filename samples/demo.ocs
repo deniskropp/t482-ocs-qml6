@@ -1,0 +1,20 @@
+⫻protocol/ocs:
+  Context:
+    ⫻context/klmx: KickLang-v4.1 / QML6 Engine
+    ⫻context/node: OCS/Display · Berlin Node
+  Directives:
+    ⫻cmd/mode: Fluid QML6 Pipeline
+  Payloads:
+    ⫻data/obj: Render parsed ⫻display blocks via QtQuick 6
+    ⫻flow/nexus: t482-ocs-qml6 surface
+
+⫻display/header:
+  Subject: MetaForge QML6 Protocol Display Engine Active
+
+⫻display/content:
+The OCS protocol handler parses ⫻-sigil markers in QML6 and elevates them into DisplayCard and SigilBadge components.
+
+Surface contract (aligned with t482 Widgets):
+ • Live AST extraction of context/cmd/data/flow
+ • Dedicated header and content cards
+ • High-contrast terminal telemetry styling

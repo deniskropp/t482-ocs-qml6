@@ -1,0 +1,13 @@
+build/
+.qt/
+CMakeCache.txt
+CMakeFiles/
+cmake_install.cmake
+Makefile
+*.user
+*.user.*
+ocs_qml6_engine
+ocs_qml6_engine_autogen/
+.qmlcache/
+*.qmlc
+*.jsc
