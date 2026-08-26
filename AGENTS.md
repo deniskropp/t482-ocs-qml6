@@ -9,7 +9,7 @@ QML6 companion to the native Widgets engine in `/home/dok/Projects/t482`. Operat
 3. **Surface:** QtQuick 6 dual-pane OCS/Display (raw payload | DisplayCard + SigilBadge).
 4. **Parser:** `qml/parser/OcsParser.js` — same ⫻-sigil regex contract as t482 `MainWindow::parseInput`.
 5. **Three-Agent-Core:** KickForge (grammar) / KickFlow (QML layout) / KickGuard (consent & node resources).
-6. **Consent Gate:** Explicit confirmation before git push, PR creation, MCP transmission, or live LLM transport (`⫻cmd/llm` → KickGuard **CONSENT & INVOKE**).
+6. **Consent Gate:** Explicit confirmation before git push, PR creation, MCP transmission, or live LLM transport (`⫻cmd/llm` SpaceXAI/Gemini → KickGuard **CONSENT & INVOKE**).
 
 ## Run
 

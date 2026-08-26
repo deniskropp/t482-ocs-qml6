@@ -115,6 +115,7 @@ function extractLlmInvoke(input) {
     var prompt = ""
     var system = ""
     var objFallback = ""
+    var providerRaw = ""
     var i
 
     for (i = 0; i < parsed.sigils.length; ++i) {
@@ -123,16 +124,25 @@ function extractLlmInvoke(input) {
             verb = String(s.value || "").trim().toLowerCase()
         else if (s.domain === "cmd" && s.key === "invoke") {
             var invokeVal = String(s.value || "").trim().toLowerCase()
-            if (invokeVal === "llm" || invokeVal === "stream" || invokeVal === "spacexai")
-                verb = invokeVal === "llm" ? "stream" : invokeVal
+            if (invokeVal === "llm" || invokeVal === "stream")
+                verb = "stream"
+            else if (invokeVal === "spacexai" || invokeVal === "xai" || invokeVal === "grok" ||
+                     invokeVal === "gemini" || invokeVal === "google" || invokeVal === "googleai") {
+                verb = "stream"
+                providerRaw = invokeVal
+            }
         } else if (s.domain === "data" && s.key === "model")
             model = String(s.value || "").trim()
         else if (s.domain === "data" && s.key === "prompt")
             prompt = String(s.value || "").trim()
         else if (s.domain === "data" && s.key === "system")
             system = String(s.value || "").trim()
+        else if (s.domain === "data" && s.key === "provider")
+            providerRaw = String(s.value || "").trim()
         else if (s.domain === "data" && s.key === "obj")
             objFallback = String(s.value || "").trim()
+        else if (s.domain === "flow" && s.key === "llm")
+            providerRaw = String(s.value || "").trim()
     }
 
     if (!prompt) {
@@ -154,7 +164,14 @@ function extractLlmInvoke(input) {
             prompt = objFallback
     }
 
-    var stream = (verb === "stream" || verb === "invoke" || verb === "spacexai")
+    if (verb === "gemini" || verb === "google" || verb === "spacexai" || verb === "xai" || verb === "grok") {
+        if (!providerRaw)
+            providerRaw = verb
+        verb = "stream"
+    }
+
+    var provider = _normalizeLlmProvider(providerRaw, model)
+    var stream = (verb === "stream" || verb === "invoke")
     return {
         active: stream,
         stream: stream,
@@ -163,8 +180,20 @@ function extractLlmInvoke(input) {
         model: model,
         prompt: prompt,
         system: system,
-        provider: "spacexai"
+        provider: provider
     }
+}
+
+function _normalizeLlmProvider(raw, model) {
+    var p = String(raw || "").trim().toLowerCase()
+    if (p === "gemini" || p === "google" || p === "googleai" || p === "google-ai")
+        return "gemini"
+    if (p === "spacexai" || p === "xai" || p === "grok" || p === "x.ai")
+        return "spacexai"
+    var m = String(model || "").trim().toLowerCase()
+    if (m.indexOf("gemini") === 0)
+        return "gemini"
+    return "spacexai"
 }
 
 function _isToken(name) {

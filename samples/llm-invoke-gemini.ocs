@@ -1,0 +1,20 @@
+⫻protocol/ocs:
+  Context:
+    ⫻context/klmx: KickLang-v4.1 / QML6 Engine
+    ⫻context/node: OCS/Display · Berlin Node
+  Directives:
+    ⫻cmd/mode: Fluid QML6 Pipeline
+    ⫻cmd/llm: stream
+  Payloads:
+    ⫻data/provider: gemini
+    ⫻data/model: gemini-3.7-flash
+    ⫻data/prompt: In one sentence, what is the OCS Display protocol surface?
+    ⫻flow/nexus: t482-ocs-qml6 live llm
+    ⫻flow/llm: gemini
+
+⫻display/header:
+  Subject: Live Gemini Invoke (KickGuard consent)
+
+⫻display/content:
+Click CONSENT & INVOKE in the QML6 bar. KickGuard will not call generativelanguage.googleapis.com until that click.
+Requires GEMINI_API_KEY or GOOGLE_API_KEY (scripts/run.sh writes a runtime env file; the C++ host reads the env var).

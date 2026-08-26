@@ -128,10 +128,102 @@ Item {
             }
         }
 
+        var geminiSpec = OcsParser.extractLlmInvoke(
+            "⫻cmd/llm: stream\n" +
+            "⫻data/model: gemini-3.7-flash\n" +
+            "⫻data/prompt: What is OCS Display?\n" +
+            "⫻flow/llm: gemini\n"
+        )
+        if (!geminiSpec.active || geminiSpec.provider !== "gemini" || geminiSpec.model !== "gemini-3.7-flash") {
+            ok = false
+            reasons.push("gemini flow/llm extract failed")
+        }
+
+        var geminiModel = OcsParser.extractLlmInvoke(
+            "⫻cmd/llm: stream\n⫻data/model: gemini-2.5-flash\n⫻data/prompt: hi\n"
+        )
+        if (geminiModel.provider !== "gemini") {
+            ok = false
+            reasons.push("gemini model did not infer provider")
+        }
+
+        var geminiInvoke = OcsParser.extractLlmInvoke("⫻cmd/invoke: gemini\n⫻data/prompt: hi\n")
+        if (!geminiInvoke.active || geminiInvoke.provider !== "gemini") {
+            ok = false
+            reasons.push("cmd/invoke gemini failed")
+        }
+
+        var geminiProvider = OcsParser.extractLlmInvoke(
+            "⫻cmd/llm: stream\n⫻data/provider: google\n⫻data/prompt: hi\n"
+        )
+        if (geminiProvider.provider !== "gemini") {
+            ok = false
+            reasons.push("data/provider google not mapped to gemini")
+        }
+
+        var geminiDenied = LlmClient.guardInvoke({
+            consent: true,
+            apiKey: "",
+            spec: { prompt: "hi", model: "gemini-3.7-flash", provider: "gemini" }
+        })
+        if (geminiDenied.ok || geminiDenied.code !== "key" || String(geminiDenied.error).indexOf("GEMINI_API_KEY") === -1) {
+            ok = false
+            reasons.push("gemini missing key gate failed")
+        }
+
+        var geminiOk = LlmClient.guardInvoke({
+            consent: true,
+            apiKey: "AIzaSyDummyKeyForContractTest00000",
+            spec: { prompt: "What is OCS Display?", model: "not-a-model", provider: "gemini" }
+        })
+        if (!geminiOk.ok) {
+            ok = false
+            reasons.push("valid gemini consent+key+prompt rejected")
+        } else {
+            if (geminiOk.request.provider !== "gemini" || geminiOk.request.auth !== "goog-api-key") {
+                ok = false
+                reasons.push("gemini request auth drifted")
+            }
+            if (geminiOk.request.model !== "gemini-3.7-flash") {
+                ok = false
+                reasons.push("invalid gemini model not sanitized")
+            }
+            var gUrl = geminiOk.request.url
+            if (gUrl.indexOf("https://generativelanguage.googleapis.com/v1beta/models/gemini-3.7-flash:streamGenerateContent") === -1 ||
+                gUrl.indexOf("alt=sse") === -1) {
+                ok = false
+                reasons.push("gemini stream URL drifted: " + gUrl)
+            }
+            if (!geminiOk.request.body.contents || geminiOk.request.body.contents[0].parts[0].text !== "What is OCS Display?") {
+                ok = false
+                reasons.push("gemini user parts mismatch")
+            }
+            if (geminiOk.request.body.stream === true) {
+                ok = false
+                reasons.push("gemini body should not use OpenAI stream flag")
+            }
+        }
+
         var redacted = LlmClient.redactSecrets("keep xai-AAAAAAAAAAAAAAAAAAAA drop")
         if (redacted.indexOf("xai-AAAAAAAAAAAAAAAAAAAA") !== -1 || redacted.indexOf("[redacted]") === -1) {
             ok = false
             reasons.push("secret redaction failed")
+        }
+        var redactedG = LlmClient.redactSecrets("keep AIzaSyDummyKeyForContractTest00000 drop")
+        if (redactedG.indexOf("AIzaSyDummyKeyForContractTest00000") !== -1 || redactedG.indexOf("[redacted]") === -1) {
+            ok = false
+            reasons.push("gemini key redaction failed")
+        }
+
+        var envKeys = LlmClient.parseEnvFile("XAI_API_KEY=xai-AAAAAAAAAAAAAAAAAAAA\nGEMINI_API_KEY=AIzaSyDummyKeyForContractTest00000\n")
+        if (envKeys.spacexai !== "xai-AAAAAAAAAAAAAAAAAAAA" || envKeys.gemini !== "AIzaSyDummyKeyForContractTest00000") {
+            ok = false
+            reasons.push("parseEnvFile dual keys failed")
+        }
+        var googleFallback = LlmClient.parseEnvFile("GOOGLE_API_KEY=AIzaSyDummyKeyForContractTest00000\n")
+        if (googleFallback.gemini !== "AIzaSyDummyKeyForContractTest00000") {
+            ok = false
+            reasons.push("GOOGLE_API_KEY fallback failed")
         }
 
         var path = LlmClient.resolveKeyFileFromArgs(["qml6", "Main.qml", "--", "--llm-key-file", "/tmp/ocs-qml6/xai.env"])
@@ -148,6 +240,15 @@ Item {
         if (sse.text !== "Ah," || sse.done !== true || sse.rest !== "partial") {
             ok = false
             reasons.push("SSE consume failed text=" + sse.text + " done=" + sse.done + " rest=" + sse.rest)
+        }
+
+        var geminiSse = LlmClient.consumeSse(
+            "data: {\"candidates\":[{\"content\":{\"parts\":[{\"text\":\"Hi\"}]}}]}\n\n" +
+            "data: {\"candidates\":[{\"content\":{\"parts\":[{\"text\":\"!\"}]},\"finishReason\":\"STOP\"}]}\n\n"
+        )
+        if (geminiSse.text !== "Hi!" || geminiSse.done !== true) {
+            ok = false
+            reasons.push("gemini SSE consume failed text=" + geminiSse.text + " done=" + geminiSse.done)
         }
 
         if (String(Theme.cardBadge("llm")) !== String(Theme.sigilContext)) {

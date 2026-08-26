@@ -9,6 +9,7 @@ Rectangle {
     property bool invokeReady: false
     property bool busy: false
     property string modelName: "grok-4.6"
+    property string providerName: "SpaceXAI"
     property string statusText: "idle"
     property string verb: ""
 
@@ -47,7 +48,7 @@ Rectangle {
         }
 
         Text {
-            text: "LIVE LLM ⫻ SpaceXAI"
+            text: "LIVE LLM ⫻ " + bar.providerName
             color: Theme.sigilContext
             font.pixelSize: 11
             font.bold: true

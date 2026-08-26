@@ -19,9 +19,11 @@ ApplicationWindow {
     ListModel { id: displayModel }
     ListModel { id: protocolModel }
 
-    // C++ host sets this from XAI_API_KEY. qml6 path uses --llm-key-file instead.
+    // C++ host sets these from env. qml6 path uses --llm-key-file instead.
     property string hostApiKey: ""
-    property string llmApiKey: ""
+    property string hostGeminiApiKey: ""
+    property string llmXaiKey: ""
+    property string llmGeminiKey: ""
     property bool llmBusy: false
     property string llmBody: ""
     property string llmStatus: "idle"
@@ -33,8 +35,11 @@ ApplicationWindow {
         model: LlmClient.defaultModel(),
         prompt: "",
         system: "",
-        provider: "spacexai"
+        provider: LlmClient.defaultProvider()
     })
+
+    readonly property string llmProvider: LlmClient.normalizeProvider(window.llmSpec.provider, window.llmSpec.model)
+    readonly property string llmApiKey: window.llmProvider === "gemini" ? window.llmGeminiKey : window.llmXaiKey
 
     readonly property string defaultPayload:
         "⫻protocol/ocs:\n" +
@@ -58,7 +63,7 @@ ApplicationWindow {
         " • Live AST extraction of context/cmd/data/flow\n" +
         " • Dedicated header and content cards\n" +
         " • Open ⫻display/<surface> and ⫻<domain>/<key> extension slots\n" +
-        " • KickGuard-gated live SpaceXAI invocation (⫻cmd/llm: stream)\n" +
+        " • KickGuard-gated live LLM (SpaceXAI or Gemini; ⫻cmd/llm: stream)\n" +
         " • High-contrast terminal telemetry styling"
 
     ColumnLayout {
@@ -77,7 +82,8 @@ ApplicationWindow {
             keyReady: window.llmApiKey.length > 0
             invokeReady: String(window.llmSpec.prompt || "").length > 0
             busy: window.llmBusy
-            modelName: LlmClient.sanitizeModel(window.llmSpec.model)
+            providerName: LlmClient.providerLabel(window.llmProvider)
+            modelName: LlmClient.sanitizeModel(window.llmSpec.model, window.llmProvider)
             verb: String(window.llmSpec.verb || "")
             statusText: window.llmStatus
             onInvokeRequested: window.consentAndInvoke()
@@ -260,8 +266,10 @@ ApplicationWindow {
     function refreshLlmStatus() {
         if (window.llmBusy)
             return
-        if (!window.llmApiKey.length)
-            window.llmStatus = "key missing · export XAI_API_KEY and rerun ./scripts/run.sh"
+        if (!window.llmApiKey.length) {
+            var envName = window.llmProvider === "gemini" ? "GEMINI_API_KEY" : "XAI_API_KEY"
+            window.llmStatus = "key missing · export " + envName + " and rerun ./scripts/run.sh"
+        }
         else if (!String(window.llmSpec.prompt || "").length)
             window.llmStatus = "no prompt"
         else if (window.llmSpec.active)
@@ -271,8 +279,11 @@ ApplicationWindow {
     }
 
     function resolveApiKey() {
-        if (window.hostApiKey && window.hostApiKey.length) {
-            window.llmApiKey = window.hostApiKey
+        if (window.hostApiKey && window.hostApiKey.length)
+            window.llmXaiKey = window.hostApiKey
+        if (window.hostGeminiApiKey && window.hostGeminiApiKey.length)
+            window.llmGeminiKey = window.hostGeminiApiKey
+        if (window.llmXaiKey.length || window.llmGeminiKey.length) {
             refreshLlmStatus()
             return
         }
@@ -286,21 +297,9 @@ ApplicationWindow {
             if (xhr.readyState !== XMLHttpRequest.DONE)
                 return
             if (xhr.status === 0 || xhr.status === 200) {
-                var raw = String(xhr.responseText || "").trim()
-                var key = raw
-                var lines = raw.split("\n")
-                var i
-                for (i = 0; i < lines.length; ++i) {
-                    var line = lines[i].replace(/^\s+|\s+$/g, "")
-                    if (!line.length || line.charAt(0) === "#")
-                        continue
-                    if (line.indexOf("XAI_API_KEY=") === 0)
-                        key = line.substring("XAI_API_KEY=".length)
-                    else
-                        key = line
-                    break
-                }
-                window.llmApiKey = key.replace(/^\s+|\s+$/g, "")
+                var keys = LlmClient.parseEnvFile(xhr.responseText)
+                window.llmXaiKey = keys.spacexai
+                window.llmGeminiKey = keys.gemini
             }
             refreshLlmStatus()
         }
@@ -314,13 +313,15 @@ ApplicationWindow {
             spec = OcsParser.extractLlmInvoke(payloadInput.text)
             if (!String(spec.prompt || "").length) {
                 spec.prompt = payloadInput.text
-                spec.model = spec.model || LlmClient.defaultModel()
+                spec.model = spec.model || LlmClient.defaultModel(spec.provider)
             }
         }
 
+        var provider = LlmClient.normalizeProvider(spec.provider, spec.model)
+        var model = LlmClient.sanitizeModel(spec.model, provider)
         window.llmBusy = true
         window.llmBody = ""
-        window.llmStatus = "streaming " + LlmClient.sanitizeModel(spec.model)
+        window.llmStatus = "streaming " + LlmClient.providerLabel(provider) + " " + model
 
         var result = LlmClient.invoke({
             consent: true,
@@ -332,7 +333,7 @@ ApplicationWindow {
             onDone: function (full) {
                 window.llmBusy = false
                 window.llmBody = full && full.length ? full : window.llmBody
-                window.llmStatus = "complete · " + LlmClient.sanitizeModel(spec.model)
+                window.llmStatus = "complete · " + LlmClient.providerLabel(provider) + " " + model
             },
             onError: function (message) {
                 window.llmBusy = false

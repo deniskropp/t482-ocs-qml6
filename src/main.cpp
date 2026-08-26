@@ -28,10 +28,15 @@ int main(int argc, char *argv[])
     if (engine.rootObjects().isEmpty())
         return -1;
 
+    QString geminiKey = QString::fromUtf8(qgetenv("GEMINI_API_KEY"));
+    if (geminiKey.isEmpty())
+        geminiKey = QString::fromUtf8(qgetenv("GOOGLE_API_KEY"));
     const QString apiKey = QString::fromUtf8(qgetenv("XAI_API_KEY"));
     const auto roots = engine.rootObjects();
-    for (QObject *root : roots)
+    for (QObject *root : roots) {
         root->setProperty("hostApiKey", apiKey);
+        root->setProperty("hostGeminiApiKey", geminiKey);
+    }
 
     return app.exec();
 }
