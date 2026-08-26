@@ -2,3 +2,4 @@ singleton Theme 1.0 Theme.qml
 HeaderBar 1.0 HeaderBar.qml
 DisplayCard 1.0 DisplayCard.qml
 SigilBadge 1.0 SigilBadge.qml
+LlmInvokeBar 1.0 LlmInvokeBar.qml

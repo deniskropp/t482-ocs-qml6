@@ -33,6 +33,13 @@ add_custom_target(theme-extensions
     COMMENT "Headless Theme/DisplayCard extension-slot test"
 )
 
+add_custom_target(llm-invoke
+    COMMAND qml6 "${CMAKE_SOURCE_DIR}/tests/llm_invoke.qml"
+    WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}"
+    USES_TERMINAL
+    COMMENT "Headless live-LLM extract/guard/SSE contract test"
+)
+
 find_package(Qt6 QUIET COMPONENTS Qml Quick QuickControls2)
 
 if(TARGET Qt6::Quick)
@@ -61,7 +68,9 @@ qt_add_qml_module(ocs_qml6_engine
         qml/components/DisplayCard.qml
         qml/components/SigilBadge.qml
         qml/components/HeaderBar.qml
+        qml/components/LlmInvokeBar.qml
         qml/parser/OcsParser.js
+        qml/llm/LlmClient.js
 )
 
 target_link_libraries(ocs_qml6_engine PRIVATE

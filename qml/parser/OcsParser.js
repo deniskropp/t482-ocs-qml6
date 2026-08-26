@@ -106,6 +106,67 @@ function parse(input) {
     return { cards: cards, sigils: sigils }
 }
 
+// KickForge: live LLM invoke spec from ⫻cmd/llm|invoke plus prompt/model/system.
+// Does not call the network. KickGuard consent lives in LlmClient.invoke.
+function extractLlmInvoke(input) {
+    var parsed = parse(input)
+    var verb = ""
+    var model = ""
+    var prompt = ""
+    var system = ""
+    var objFallback = ""
+    var i
+
+    for (i = 0; i < parsed.sigils.length; ++i) {
+        var s = parsed.sigils[i]
+        if (s.domain === "cmd" && s.key === "llm")
+            verb = String(s.value || "").trim().toLowerCase()
+        else if (s.domain === "cmd" && s.key === "invoke") {
+            var invokeVal = String(s.value || "").trim().toLowerCase()
+            if (invokeVal === "llm" || invokeVal === "stream" || invokeVal === "spacexai")
+                verb = invokeVal === "llm" ? "stream" : invokeVal
+        } else if (s.domain === "data" && s.key === "model")
+            model = String(s.value || "").trim()
+        else if (s.domain === "data" && s.key === "prompt")
+            prompt = String(s.value || "").trim()
+        else if (s.domain === "data" && s.key === "system")
+            system = String(s.value || "").trim()
+        else if (s.domain === "data" && s.key === "obj")
+            objFallback = String(s.value || "").trim()
+    }
+
+    if (!prompt) {
+        var headerText = ""
+        var contentText = ""
+        for (i = 0; i < parsed.cards.length; ++i) {
+            if (parsed.cards[i].type === "header" && !headerText)
+                headerText = parsed.cards[i].text
+            else if (parsed.cards[i].type === "content" && !contentText)
+                contentText = parsed.cards[i].text
+        }
+        if (headerText && contentText)
+            prompt = headerText + "\n\n" + contentText
+        else if (contentText)
+            prompt = contentText
+        else if (headerText)
+            prompt = headerText
+        else
+            prompt = objFallback
+    }
+
+    var stream = (verb === "stream" || verb === "invoke" || verb === "spacexai")
+    return {
+        active: stream,
+        stream: stream,
+        halt: verb === "halt",
+        verb: verb,
+        model: model,
+        prompt: prompt,
+        system: system,
+        provider: "spacexai"
+    }
+}
+
 function _isToken(name) {
     return /^[a-z][a-z0-9_-]*$/.test(name)
 }

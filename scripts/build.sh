@@ -14,4 +14,5 @@ else
     echo "Runtime: $ROOT/scripts/run.sh"
     echo "Smoke:   QT_QPA_PLATFORM=offscreen qml6 $ROOT/tests/parse_smoke.qml"
     echo "Slots:   QT_QPA_PLATFORM=offscreen qml6 $ROOT/tests/parse_extensions.qml"
+    echo "LLM:     QT_QPA_PLATFORM=offscreen qml6 $ROOT/tests/llm_invoke.qml"
 fi

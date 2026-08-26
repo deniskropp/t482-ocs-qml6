@@ -6,6 +6,7 @@ import QtQuick.Controls
 import QtQuick.Layouts
 import "components"
 import "parser/OcsParser.js" as OcsParser
+import "llm/LlmClient.js" as LlmClient
 
 ApplicationWindow {
     id: window
@@ -18,6 +19,23 @@ ApplicationWindow {
     ListModel { id: displayModel }
     ListModel { id: protocolModel }
 
+    // C++ host sets this from XAI_API_KEY. qml6 path uses --llm-key-file instead.
+    property string hostApiKey: ""
+    property string llmApiKey: ""
+    property bool llmBusy: false
+    property string llmBody: ""
+    property string llmStatus: "idle"
+    property var llmSpec: ({
+        active: false,
+        stream: false,
+        halt: false,
+        verb: "",
+        model: LlmClient.defaultModel(),
+        prompt: "",
+        system: "",
+        provider: "spacexai"
+    })
+
     readonly property string defaultPayload:
         "⫻protocol/ocs:\n" +
         "  Context:\n" +
@@ -25,9 +43,13 @@ ApplicationWindow {
         "    ⫻context/node: OCS/Display · Berlin Node\n" +
         "  Directives:\n" +
         "    ⫻cmd/mode: Fluid QML6 Pipeline\n" +
+        "    ⫻cmd/llm: stream\n" +
         "  Payloads:\n" +
         "    ⫻data/obj: Render parsed ⫻display blocks via QtQuick 6\n" +
+        "    ⫻data/model: grok-4.6\n" +
+        "    ⫻data/prompt: In one sentence, what is the OCS Display protocol surface?\n" +
         "    ⫻flow/nexus: t482-ocs-qml6 surface\n" +
+        "    ⫻flow/llm: spacexai\n" +
         "\n⫻display/header:\n" +
         "  Subject: MetaForge QML6 Protocol Display Engine Active\n" +
         "\n⫻display/content:\n" +
@@ -36,6 +58,7 @@ ApplicationWindow {
         " • Live AST extraction of context/cmd/data/flow\n" +
         " • Dedicated header and content cards\n" +
         " • Open ⫻display/<surface> and ⫻<domain>/<key> extension slots\n" +
+        " • KickGuard-gated live SpaceXAI invocation (⫻cmd/llm: stream)\n" +
         " • High-contrast terminal telemetry styling"
 
     ColumnLayout {
@@ -46,6 +69,19 @@ ApplicationWindow {
         HeaderBar {
             Layout.fillWidth: true
             Layout.preferredHeight: 48
+        }
+
+        LlmInvokeBar {
+            Layout.fillWidth: true
+            Layout.preferredHeight: 40
+            keyReady: window.llmApiKey.length > 0
+            invokeReady: String(window.llmSpec.prompt || "").length > 0
+            busy: window.llmBusy
+            modelName: LlmClient.sanitizeModel(window.llmSpec.model)
+            verb: String(window.llmSpec.verb || "")
+            statusText: window.llmStatus
+            onInvokeRequested: window.consentAndInvoke()
+            onHaltRequested: window.haltLlm()
         }
 
         SplitView {
@@ -137,8 +173,17 @@ ApplicationWindow {
                                 }
                             }
 
+                            DisplayCard {
+                                visible: window.llmBody.length > 0 || window.llmBusy
+                                width: cardsColumn.width
+                                cardType: "llm"
+                                body: window.llmBusy && window.llmBody.length === 0
+                                      ? "streaming…"
+                                      : window.llmBody
+                            }
+
                             Text {
-                                visible: displayModel.count === 0
+                                visible: displayModel.count === 0 && window.llmBody.length === 0 && !window.llmBusy
                                 width: cardsColumn.width
                                 text: "No ⫻display/<surface> blocks parsed."
                                 color: Theme.textMuted
@@ -192,7 +237,10 @@ ApplicationWindow {
         }
     }
 
-    Component.onCompleted: parsePayload(payloadInput.text)
+    Component.onCompleted: {
+        parsePayload(payloadInput.text)
+        resolveApiKey()
+    }
 
     function parsePayload(input) {
         displayModel.clear()
@@ -204,5 +252,107 @@ ApplicationWindow {
             displayModel.append(result.cards[i])
         for (i = 0; i < result.sigils.length; ++i)
             protocolModel.append(result.sigils[i])
+
+        window.llmSpec = OcsParser.extractLlmInvoke(input)
+        refreshLlmStatus()
+    }
+
+    function refreshLlmStatus() {
+        if (window.llmBusy)
+            return
+        if (!window.llmApiKey.length)
+            window.llmStatus = "key missing · export XAI_API_KEY and rerun ./scripts/run.sh"
+        else if (!String(window.llmSpec.prompt || "").length)
+            window.llmStatus = "no prompt"
+        else if (window.llmSpec.active)
+            window.llmStatus = "ready · consent required"
+        else
+            window.llmStatus = "ready · editor fallback"
+    }
+
+    function resolveApiKey() {
+        if (window.hostApiKey && window.hostApiKey.length) {
+            window.llmApiKey = window.hostApiKey
+            refreshLlmStatus()
+            return
+        }
+        var path = LlmClient.resolveKeyFileFromArgs(Qt.application.arguments)
+        if (!path.length) {
+            refreshLlmStatus()
+            return
+        }
+        var xhr = new XMLHttpRequest()
+        xhr.onreadystatechange = function () {
+            if (xhr.readyState !== XMLHttpRequest.DONE)
+                return
+            if (xhr.status === 0 || xhr.status === 200) {
+                var raw = String(xhr.responseText || "").trim()
+                var key = raw
+                var lines = raw.split("\n")
+                var i
+                for (i = 0; i < lines.length; ++i) {
+                    var line = lines[i].replace(/^\s+|\s+$/g, "")
+                    if (!line.length || line.charAt(0) === "#")
+                        continue
+                    if (line.indexOf("XAI_API_KEY=") === 0)
+                        key = line.substring("XAI_API_KEY=".length)
+                    else
+                        key = line
+                    break
+                }
+                window.llmApiKey = key.replace(/^\s+|\s+$/g, "")
+            }
+            refreshLlmStatus()
+        }
+        xhr.open("GET", path.indexOf("file:") === 0 ? path : ("file://" + path))
+        xhr.send()
+    }
+
+    function consentAndInvoke() {
+        var spec = window.llmSpec
+        if (!String(spec.prompt || "").length) {
+            spec = OcsParser.extractLlmInvoke(payloadInput.text)
+            if (!String(spec.prompt || "").length) {
+                spec.prompt = payloadInput.text
+                spec.model = spec.model || LlmClient.defaultModel()
+            }
+        }
+
+        window.llmBusy = true
+        window.llmBody = ""
+        window.llmStatus = "streaming " + LlmClient.sanitizeModel(spec.model)
+
+        var result = LlmClient.invoke({
+            consent: true,
+            apiKey: window.llmApiKey,
+            spec: spec,
+            onDelta: function (piece, full) {
+                window.llmBody = full
+            },
+            onDone: function (full) {
+                window.llmBusy = false
+                window.llmBody = full && full.length ? full : window.llmBody
+                window.llmStatus = "complete · " + LlmClient.sanitizeModel(spec.model)
+            },
+            onError: function (message) {
+                window.llmBusy = false
+                if (!window.llmBody.length)
+                    window.llmBody = message
+                window.llmStatus = message
+            }
+        })
+
+        if (!result.ok) {
+            window.llmBusy = false
+            window.llmStatus = result.error
+            if (!window.llmBody.length)
+                window.llmBody = result.error
+        }
+    }
+
+    function haltLlm() {
+        LlmClient.halt()
+        window.llmBusy = false
+        window.llmStatus = "halted"
     }
 }

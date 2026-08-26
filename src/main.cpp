@@ -28,5 +28,10 @@ int main(int argc, char *argv[])
     if (engine.rootObjects().isEmpty())
         return -1;
 
+    const QString apiKey = QString::fromUtf8(qgetenv("XAI_API_KEY"));
+    const auto roots = engine.rootObjects();
+    for (QObject *root : roots)
+        root->setProperty("hostApiKey", apiKey);
+
     return app.exec();
 }

@@ -9,6 +9,7 @@ QtObject {
     readonly property color bgPanel: "#111115"
     readonly property color bgCardHeader: "#18241b"
     readonly property color bgCardContent: "#16161e"
+    readonly property color bgCardLlm: "#0d1a1f"
     readonly property color bgBadge: "#181820"
     readonly property color bgTelemetry: "#09090c"
 
@@ -42,11 +43,19 @@ QtObject {
     }
 
     function cardBackground(type) {
-        return type === "header" ? bgCardHeader : bgCardContent
+        if (type === "header")
+            return bgCardHeader
+        if (type === "llm")
+            return bgCardLlm
+        return bgCardContent
     }
 
     function cardBorder(type) {
-        return type === "header" ? accent : borderContent
+        if (type === "header")
+            return accent
+        if (type === "llm")
+            return sigilContext
+        return borderContent
     }
 
     function cardBadge(type) {
@@ -54,6 +63,8 @@ QtObject {
             return accent
         if (type === "content")
             return contentBadge
+        if (type === "llm")
+            return sigilContext
         return unknownBadge
     }
 

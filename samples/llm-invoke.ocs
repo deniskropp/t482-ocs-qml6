@@ -1,0 +1,19 @@
+⫻protocol/ocs:
+  Context:
+    ⫻context/klmx: KickLang-v4.1 / QML6 Engine
+    ⫻context/node: OCS/Display · Berlin Node
+  Directives:
+    ⫻cmd/mode: Fluid QML6 Pipeline
+    ⫻cmd/llm: stream
+  Payloads:
+    ⫻data/model: grok-4.6
+    ⫻data/prompt: In one sentence, what is the OCS Display protocol surface?
+    ⫻flow/nexus: t482-ocs-qml6 live llm
+    ⫻flow/llm: spacexai
+
+⫻display/header:
+  Subject: Live SpaceXAI Invoke (KickGuard consent)
+
+⫻display/content:
+Click CONSENT & INVOKE in the QML6 bar. KickGuard will not call api.x.ai until that click.
+Requires XAI_API_KEY (scripts/run.sh writes a runtime key file; the C++ host reads the env var).
