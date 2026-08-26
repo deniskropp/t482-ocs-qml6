@@ -16,6 +16,8 @@ QML6 companion to the native Widgets engine in `/home/dok/Projects/t482`. Operat
 ```bash
 ./scripts/run.sh
 QT_QPA_PLATFORM=offscreen qml6 tests/parse_smoke.qml
+QT_QPA_PLATFORM=offscreen qml6 tests/parse_extensions.qml
+QT_QPA_PLATFORM=offscreen qml6 tests/theme_extensions.qml
 ```
 
 C++ host (`ocs_qml6_engine`) requires `qt6-declarative-dev`. Without it, `qml6` is the runtime.

@@ -4,8 +4,8 @@ import QtQuick.Layouts
 Rectangle {
     id: headerBar
 
-    color: "#141419"
-    border.color: "#00ff41"
+    color: Theme.bgSecondary
+    border.color: Theme.accent
     border.width: 1
     radius: 4
     implicitHeight: 48
@@ -18,19 +18,19 @@ Rectangle {
 
         Text {
             text: "⫻ OCS/NODE QML6 ENGINE"
-            color: "#00ff41"
+            color: Theme.accent
             font.pixelSize: 14
             font.bold: true
-            font.family: "FreeMono"
+            font.family: Theme.fontFamily
         }
 
         Item { Layout.fillWidth: true }
 
         Text {
             text: "ENGINE: QtQuick 6 / QML6 | NODE: Berlin"
-            color: "#888888"
+            color: Theme.textMuted
             font.pixelSize: 11
-            font.family: "FreeMono"
+            font.family: Theme.fontFamily
         }
     }
 }

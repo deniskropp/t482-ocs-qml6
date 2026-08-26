@@ -7,16 +7,9 @@ Rectangle {
     property string value: ""
     property string domain: ""
 
-    readonly property color accent: {
-        switch (domain) {
-        case "cmd": return "#00b0ff"
-        case "data": return "#76ff03"
-        case "flow": return "#d500f9"
-        default: return "#00e5ff"
-        }
-    }
+    readonly property color accent: Theme.colorForDomain(domain)
 
-    color: "#181820"
+    color: Theme.bgBadge
     border.color: accent
     border.width: 1
     radius: 4
@@ -29,7 +22,7 @@ Rectangle {
         text: "<b>" + badge.sigil + ":</b> " + badge.value
         color: badge.accent
         font.pixelSize: 10
-        font.family: "FreeMono"
+        font.family: Theme.fontFamily
         textFormat: Text.RichText
     }
 }

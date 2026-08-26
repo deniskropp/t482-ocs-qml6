@@ -13,4 +13,5 @@ else
     echo "C++ host not built (Qt6 Quick CMake package missing)."
     echo "Runtime: $ROOT/scripts/run.sh"
     echo "Smoke:   QT_QPA_PLATFORM=offscreen qml6 $ROOT/tests/parse_smoke.qml"
+    echo "Slots:   QT_QPA_PLATFORM=offscreen qml6 $ROOT/tests/parse_extensions.qml"
 fi

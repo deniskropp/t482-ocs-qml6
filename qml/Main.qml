@@ -13,7 +13,7 @@ ApplicationWindow {
     height: 750
     visible: true
     title: "OCS/Node QML6 Engine v0.1 (QtQuick 6)"
-    color: "#0a0a0c"
+    color: Theme.bgPrimary
 
     ListModel { id: displayModel }
     ListModel { id: protocolModel }
@@ -35,6 +35,7 @@ ApplicationWindow {
         "Surface contract (aligned with t482 Widgets):\n" +
         " • Live AST extraction of context/cmd/data/flow\n" +
         " • Dedicated header and content cards\n" +
+        " • Open ⫻display/<surface> and ⫻<domain>/<key> extension slots\n" +
         " • High-contrast terminal telemetry styling"
 
     ColumnLayout {
@@ -55,8 +56,8 @@ ApplicationWindow {
             Rectangle {
                 SplitView.preferredWidth: 420
                 SplitView.minimumWidth: 280
-                color: "#111115"
-                border.color: "#22222a"
+                color: Theme.bgPanel
+                border.color: Theme.border
                 radius: 4
 
                 ColumnLayout {
@@ -66,10 +67,10 @@ ApplicationWindow {
 
                     Text {
                         text: "RAW OCS PAYLOAD INPUT"
-                        color: "#00ff41"
+                        color: Theme.accent
                         font.pixelSize: 11
                         font.bold: true
-                        font.family: "FreeMono"
+                        font.family: Theme.fontFamily
                     }
 
                     ScrollView {
@@ -79,10 +80,10 @@ ApplicationWindow {
 
                         TextArea {
                             id: payloadInput
-                            color: "#00e5ff"
-                            selectionColor: "#00ff41"
+                            color: Theme.editorText
+                            selectionColor: Theme.accent
                             selectedTextColor: "#000000"
-                            font.family: "FreeMono"
+                            font.family: Theme.fontFamily
                             font.pixelSize: 12
                             wrapMode: TextEdit.Wrap
                             background: null
@@ -96,8 +97,8 @@ ApplicationWindow {
             Rectangle {
                 SplitView.fillWidth: true
                 SplitView.minimumWidth: 360
-                color: "#111115"
-                border.color: "#22222a"
+                color: Theme.bgPanel
+                border.color: Theme.border
                 radius: 4
 
                 ColumnLayout {
@@ -107,10 +108,10 @@ ApplicationWindow {
 
                     Text {
                         text: "PARSED ⫻DISPLAY QML6 VIEW"
-                        color: "#00ff41"
+                        color: Theme.accent
                         font.pixelSize: 11
                         font.bold: true
-                        font.family: "FreeMono"
+                        font.family: Theme.fontFamily
                     }
 
                     Flickable {
@@ -139,10 +140,10 @@ ApplicationWindow {
                             Text {
                                 visible: displayModel.count === 0
                                 width: cardsColumn.width
-                                text: "No ⫻display/header or ⫻display/content blocks parsed."
-                                color: "#888888"
+                                text: "No ⫻display/<surface> blocks parsed."
+                                color: Theme.textMuted
                                 wrapMode: Text.WordWrap
-                                font.family: "FreeMono"
+                                font.family: Theme.fontFamily
                                 font.pixelSize: 12
                             }
                         }
@@ -151,8 +152,8 @@ ApplicationWindow {
                     Rectangle {
                         Layout.fillWidth: true
                         implicitHeight: Math.max(56, telemetryFlow.implicitHeight + 16)
-                        color: "#09090c"
-                        border.color: "#222222"
+                        color: Theme.bgTelemetry
+                        border.color: Theme.borderTelemetry
                         radius: 4
 
                         Item {

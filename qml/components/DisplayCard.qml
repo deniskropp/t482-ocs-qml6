@@ -7,10 +7,8 @@ Rectangle {
     required property string cardType
     required property string body
 
-    readonly property bool isHeader: cardType === "header"
-
-    color: isHeader ? "#18241b" : "#16161e"
-    border.color: isHeader ? "#00ff41" : "#3d3d5c"
+    color: Theme.cardBackground(cardType)
+    border.color: Theme.cardBorder(cardType)
     border.width: 1
     radius: 6
     implicitHeight: cardLayout.implicitHeight + 24
@@ -24,7 +22,7 @@ Rectangle {
         spacing: 8
 
         Rectangle {
-            color: card.isHeader ? "#00ff41" : "#7928ca"
+            color: Theme.cardBadge(card.cardType)
             implicitWidth: tagLabel.implicitWidth + 12
             implicitHeight: 20
             radius: 3
@@ -32,21 +30,21 @@ Rectangle {
             Text {
                 id: tagLabel
                 anchors.centerIn: parent
-                text: card.isHeader ? " ⫻DISPLAY / HEADER " : " ⫻DISPLAY / CONTENT "
-                color: card.isHeader ? "#000000" : "#ffffff"
+                text: Theme.cardTag(card.cardType)
+                color: Theme.cardBadgeText(card.cardType)
                 font.pixelSize: 10
                 font.bold: true
-                font.family: "FreeMono"
+                font.family: Theme.fontFamily
             }
         }
 
         Text {
             Layout.fillWidth: true
             text: card.body
-            color: card.isHeader ? "#ffffff" : "#d1d5db"
-            font.pixelSize: card.isHeader ? 14 : 12
-            font.bold: card.isHeader
-            font.family: "FreeMono"
+            color: Theme.cardBodyColor(card.cardType)
+            font.pixelSize: Theme.cardBodySize(card.cardType)
+            font.bold: Theme.cardBodyBold(card.cardType)
+            font.family: Theme.fontFamily
             wrapMode: Text.WordWrap
             textFormat: Text.PlainText
         }
